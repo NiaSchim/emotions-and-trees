@@ -4,6 +4,8 @@ import json
 import tracery
 import text2emotion as te
 import stanfordnlp
+import spacy
+from spacy import displacy
 from random import choice
 import random
 import time
@@ -16,6 +18,7 @@ PKS_LEAK_RATE = 0.9999
 DEFAULT_LEAK_RATE = 0.99995
 WEIGHT_THRESHOLD = 0.0001
 nlp = stanfordnlp.Pipeline()
+NER = spacy.load("en_core_web_sm")
 
 class AGI:
     def __init__(self, model_path, emotional_decoder_csv_path):
@@ -40,16 +43,15 @@ class AGI:
         self.current_emotion = self.get_emotion_coordinates(survey1_results)
         self.user_target_emotion = self.get_emotion_coordinates(survey2_results)
 
-
     def initialize_pks(self):
         try:
             with open("uksekspks.json", "r") as f:
                 pks_data = json.load(f)
-                pks = UKSEKSPKS("uksekspks.json")
+                pks = UKSEKSPKS(self, "uksekspks.json")
                 pks.data = pks_data
         except FileNotFoundError:
             initial_coords = pd.read_csv(self.emotional_decoder_csv_path, index_col=0).iloc[0]
-            pks = UKSEKSPKS("uksekspks.json")
+            pks = UKSEKSPKS(self, "uksekspks.json")
             pks.add_profile("default", initial_coords)
             with open("uksekspks.json", "w") as f:
                 json.dump(pks.to_dict(), f, indent=4)
@@ -328,6 +330,9 @@ class AGI:
                 self.update_surveys()
             else:
                 output = self.generate_response_with_target_emotion(input_text)
+                input_emotion = self.identify_emotion(input_text)
+                response_emotion = self.identify_emotion(output)
+                self.uksekspks.update_uksekspks(input_text, output, input_emotion, response_emotion)
                 self.update_surveys()
             return output
 
@@ -364,9 +369,10 @@ class AGI:
 
 
 class UKSEKSPKS:
-    def __init__(self, uksekspks_json_path):
-        self.uksekspks_json_path = uksekspks_json_path
-        self.load_data()
+    def __init__(self, agi_instance, filename):
+        self.agi = agi_instance
+        self.filename = filename
+        self.data = {}
 
     def load_data(self):
         if os.path.exists(self.uksekspks_json_path):
@@ -460,6 +466,7 @@ class UKSEKSPKS:
                     else:
                         self.data["weights"][weight_key] *= (1 + (2 / (3 * 2 * depth)))
 
+
                 # Boost synapse strength between word trees and emotional coordinates that are already connected
                 if current_emotion and emotion_pair in self.data[weight_key]:
                     self.data[weight_key][emotion_pair] *= EMOTION_INERTIA
@@ -493,3 +500,52 @@ class UKSEKSPKS:
                         synapse_strengths[emotion_key] = 0
                     synapse_strengths[emotion_key] += weight_value * emotion_value
         return synapse_strengths
+
+    def update_uksekspks(self, input_text, response, input_emotion, response_emotion):
+        # Process input_text and response using Stanford NLP
+        input_doc = nlp(input_text)
+        response_doc = nlp(response)
+
+        # Named Entity Recognition for input_text and response
+        input_entities = [(ent.text, ent.type) for ent in input_doc.ents]
+        response_entities = [(ent.text, ent.type) for ent in response_doc.ents]
+
+        # Connect named entities to the PKS tree
+        self.connect_named_entities_to_pks_tree(input_entities, response_entities, input_text)
+
+        # Update EKS with emotion pairs
+        self.connect_emotions_to_eks(input_emotion, response_emotion)
+
+    def connect_named_entities_to_pks_tree(self, input_entities, response_entities, input_text):
+        for entity_text, entity_type in input_entities + response_entities:
+
+            # Connect the named entity to its type node
+            type_node_key = f"{entity_text}_type"
+            if type_node_key not in self.data["PKS"]:
+                self.data["PKS"][type_node_key] = {}
+            self.data["PKS"][type_node_key][entity_type] = 1
+
+            # Connect the sentence tree to the named entity
+            sentence_tree_key = f"{input_text}_sentence_tree"
+            if sentence_tree_key not in self.data["PKS"]:
+                self.data["PKS"][sentence_tree_key] = {}
+            self.data["PKS"][sentence_tree_key][entity_text] = 1
+
+            self.save_data()
+
+    def connect_emotions_to_eks(self, input_emotion, response_emotion):
+        # Update the EKS with the input_emotion and response_emotion
+        input_emotion_key = f"emotion_{input_emotion}"
+        response_emotion_key = f"emotion_{response_emotion}"
+
+        # Connect the input_emotion to the EKS
+        if input_emotion_key not in self.data["EKS"]:
+            self.data["EKS"][input_emotion_key] = {}
+        self.data["EKS"][input_emotion_key][input_emotion] = 1
+
+        # Connect the response_emotion to the EKS
+        if response_emotion_key not in self.data["EKS"]:
+            self.data["EKS"][response_emotion_key] = {}
+        self.data["EKS"][response_emotion_key][response_emotion] = 1
+
+        self.save_data()
