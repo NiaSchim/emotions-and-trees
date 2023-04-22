@@ -20,7 +20,7 @@ nlp = stanfordnlp.Pipeline()
 class AGI:
     def __init__(self, model_path, emotional_decoder_csv_path):
         self.model_path = model_path
-        #self.model = self.initialize_model()
+        self.model = None #self.model = self.initialize_model()
         self.emotional_decoder_csv_path = emotional_decoder_csv_path
         self.nlp = stanfordnlp.Pipeline()
         self.current_emotion = None
@@ -46,6 +46,8 @@ class AGI:
                 return bot_target_emotion
             else:
                 return self.average_emotional_coordinates(user_target_emotion, bot_target_emotion)
+        self.target_emotion = self.calculate_target_emotion(self.user_target_emotion, self.bot_target_emotion)
+        self.target_emotion = self.calculate_target_emotion(self.user_target_emotion, self.bot_target_emotion)
 
         def get_results_of_questions(self, questions):
             results = []
@@ -55,6 +57,9 @@ class AGI:
                 results.append(answer)
             survey_emotional_coordinate = {'name': 'survey', **{f'coord{i}': int(results[i]) for i in range(len(results))}}
             return survey_emotional_coordinate
+        self.survey1_results = self.get_results_of_questions(self.questions1)
+        self.survey2_results = self.get_results_of_questions(self.questions2)
+
 
         def start_surveys(self):
             self.current_question_cycle = cycle(self.questions1 + self.questions2)
@@ -74,6 +79,7 @@ class AGI:
                         coordinates = [float(c) for c in coordinates_str.split(',')[1:]]  # Convert to floats and skip the name part
                     return coordinates
                 return None
+        self.bot_target_emotion = self.get_emotion_coordinates("happy")
 
         def initialize_pks(self):
             try:
@@ -88,6 +94,7 @@ class AGI:
                 with open("uksekspks.json", "w") as f:
                     json.dump(pks.to_dict(), f, indent=4)
             return pks
+        self.uksekspks = self.initialize_pks()
 
         def initialize_model(self):
             def progress_callback(progress):
@@ -99,6 +106,7 @@ class AGI:
             params.repeat_penalty = 1.0
             model = llamacpp.LlamaInference(params)
             return model
+        self.model = self.initialize_model()
 
         def generate_suggestion(self, prompt):
             prompt_tokens = self.model.tokenize(prompt, True)
@@ -265,6 +273,8 @@ class AGI:
                     return 0 <= answer_int <= 4
                 elif 18 <= index < 24:  # Last 6 questions
                     return answer_int in (0, 1)
+                elif 24 <= index:  # Last 6 questions
+                    self.user_target_emotion = self.get_emotion_coordinates(survey2_results)
                 else:
                     return False
             else:
@@ -274,6 +284,7 @@ class AGI:
             if self.current_question_index_number < len(self.questions1):
                 return 1
             else:
+                self.current_emotion = self.get_emotion_coordinates(survey1_results)
                 return 2
 
         def handle_survey_results(self):
