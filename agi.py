@@ -373,6 +373,7 @@ class UKSEKSPKS:
         self.agi = agi_instance
         self.filename = filename
         self.data = {}
+        self.last_proper_noun = None
 
     def load_data(self):
         if os.path.exists(self.uksekspks_json_path):
@@ -487,9 +488,11 @@ class UKSEKSPKS:
         self.update_weights(encountered_weights)
 
     def follows_logically(self, sequence):
-        # Implement the logic assessment here, returning True if the sequence is deemed logical, and False otherwise.
-        # For now, we will simply return True. You should replace this with your own logic assessment function.
-        return True
+        try:
+            doc = nlp(' '.join(sequence))
+            return True
+        except:
+            return False
 
     def get_synapse_strengths(self, tree_key):
         synapse_strengths = {}
@@ -549,3 +552,60 @@ class UKSEKSPKS:
         self.data["EKS"][response_emotion_key][response_emotion] = 1
 
         self.save_data()
+
+    def is_self_introduction(self, input_text, entity_text):
+        patterns = [
+            r"I am\s+{}".format(entity_text),
+            r"hello, I['’]m\s+{}".format(entity_text),
+            r"my name is\s+{}".format(entity_text),
+            r"I['’]m\s+{}".format(entity_text),
+        ]
+        for pattern in patterns:
+            if re.search(pattern, input_text, re.IGNORECASE):
+                return True
+        return False
+
+    def handle_proper_noun(self, input_text, entity_text):
+        if self.last_proper_noun is None:
+            self.last_proper_noun = entity_text
+            self.data["PKS"][entity_text] = {"User": 1, "person": 1, "name": 1}
+        else:
+            if entity_text != self.last_proper_noun:
+                # When a new named entity is introduced
+                self.data["PKS"][entity_text] = {"User": 1, "person": 1, "name": 1}
+
+                # Adjust synapse strength for the old named entity
+                self.data["PKS"][self.last_proper_noun] = {
+                    key: value * 0.5 for key, value in self.data["PKS"][self.last_proper_noun].items()
+                }
+
+                # Update last_proper_noun
+                self.last_proper_noun = entity_text
+            else:
+                # When the old named entity returns
+                callback_phrases = ["it's me", "I'm back", "I have returned"]
+                if any(phrase in input_text for phrase in callback_phrases):
+                    self.data["PKS"][entity_text] = {
+                        key: value * 2 for key, value in self.data["PKS"][entity_text].items()
+                    }
+        return True
+
+    def connect_named_entities_to_pks_tree(self, input_entities, response_entities, input_text):
+        for entity_text, entity_type in input_entities + response_entities:
+            if entity_type == "PERSON" and self.is_self_introduction(input_text, entity_text):
+                if self.handle_proper_noun(input_text, entity_text):
+                    continue
+
+            # Connect the named entity to its type node
+            type_node_key = f"{entity_text}_type"
+            if type_node_key not in self.data["PKS"]:
+                self.data["PKS"][type_node_key] = {}
+            self.data["PKS"][type_node_key][entity_type] = 1
+
+            # Connect the sentence tree to the named entity
+            sentence_tree_key = f"{input_text}_sentence_tree"
+            if sentence_tree_key not in self.data["PKS"]:
+                self.data["PKS"][sentence_tree_key] = {}
+            self.data["PKS"][sentence_tree_key][entity_text] = 1
+
+            self.save_data()
