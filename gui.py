@@ -33,9 +33,21 @@ class ChatGUI:
         if os.path.exists("chat-history.xml"):
             chat_history_root = ElementTree(file="chat-history.xml").getroot()
             for message in chat_history_root.findall("message"):
-                message_box = QLabel(f"{message.find('user').text}: {message.find('bot').text}")
+                user_element = message.find('user')
+                bot_element = message.find('bot')
+
+                if user_element is not None and bot_element is not None:
+                    message_box = QLabel(f"{user_element.text}: {bot_element.text}")
+                elif user_element is not None:
+                    message_box = QLabel(f"{user_element.text}")
+                elif bot_element is not None:
+                    message_box = QLabel(f"{bot_element.text}")
+                else:
+                    print("Error: Could not find 'user' and/or 'bot' elements in the XML message.")
+                    continue
+
                 message_box.setStyleSheet("background-color: #EEEEEE; padding: 10px; border-radius: 5px;")
-                message_box.setAlignment(Qt.AlignRight if message.find('user').text == 'User' else Qt.AlignLeft)
+                message_box.setAlignment(Qt.AlignRight if user_element and user_element.text == 'User' else Qt.AlignLeft)
                 chat_history_layout.addWidget(message_box)
 
         # Add components to main layout
@@ -48,12 +60,15 @@ class ChatGUI:
         main_window.setLayout(main_layout)
 
         # Connect send button to send_message method
-        send_button.clicked.connect(lambda: self.send_message(input_box.toPlainText().strip(), chat_history_layout))
+        send_button.clicked.connect(lambda: self.send_message(input_box.toPlainText().strip(), chat_history_layout, input_box))
 
         main_window.show()
         app.exec_()
 
-    def send_message(self, message, chat_history_layout):
+    def send_message(self, message, chat_history_layout, input_box):
+        # Clear the input box
+        input_box.clear()
+
         if not message.strip():  # Ignore empty or whitespace-only messages
             return
 
@@ -87,6 +102,3 @@ class ChatGUI:
         chat_history_root.append(bot_message_element)
 
         ElementTree(chat_history_root).write("chat-history.xml")
-
-        # Clear the input box
-        self.input_box.clear()
