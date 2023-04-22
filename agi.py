@@ -17,370 +17,23 @@ DEFAULT_LEAK_RATE = 0.99995
 WEIGHT_THRESHOLD = 0.0001
 nlp = stanfordnlp.Pipeline()
 
-class AGI:
-    def __init__(self, model_path, emotional_decoder_csv_path):
-        self.model_path = model_path
-        self.model = None #self.model = self.initialize_model()
-        self.emotional_decoder_csv_path = emotional_decoder_csv_path
-        self.nlp = stanfordnlp.Pipeline()
-        self.current_emotion = None
-        self.uksekspks = None #self.uksekspks = self.initialize_pks()
-        self.override_generate_response = False
-        self.user_target_emotion = None
-        self.bot_target_emotion = None #self.bot_target_emotion = self.get_emotion_coordinates("happy")
-        self.target_emotion = None #self.target_emotion = self.calculate_target_emotion(self.user_target_emotion, self.bot_target_emotion)
-        self.questions1 = [            "how comfortable are your emotions on a scale of 0 to 4",            "how familiar are your emotions on a scale of 0 to 4",            "how changing novel or dynamic are your emotions on a scale of 0 to 4",            "how uncomfortable are your emotions on a scale of 0 to 4",            "how comfortable is your body on a scale of 0 to 4",            "how familiar are your bodily sensations on a scale of 0 to 4",            "how changing novel or dynamic are your bodily sensations on a scale of 0 to 4 ",            "how uncomfortable is your body on a scale of 0 to 4",            "how comfortable is your current environment on a scale of 0 to 4",            "how familiar is your environment on a scale of 0 to 4",            "how changing novel or dynamic is your environment on a scale of 0 to 4",            "how uncomfortable is your environment on a scale of 0 to 4",            "how comfortable are your intentions on a scale of 0 to 4",            "how familiar or familiarity-seeking are your intentions on a scale of 0 to 4 ",            "how changing novel or dynamic are your intentions on a scale of 0 to 4",            "how uncomfortable are your intentions on a scale of 0 to 4",            "note: 'the other' could be any person place or thing that has your attention right now. How comfortable does the other make you on a scale of 0 to 4",            "how familiar is the other on a scale of 0 to 4",            "how changing novel or dynamic is the other on a scale of 0 to 4  ",            "how uncomfortable does the other make you on a scale of 0 to 4",            "how comfortable is your social group on a scale of 0 to 4",            "how familiar is your social group on a scale of 0 to 4",            "how changing novel or dynamic is your social group on a scale of 0 to 4     ",            "how uncomfortable is your social group on a scale of 0 to 4",            "write '1' if you are focused on maintaining or changing your emotions, or else write '0'.",            "write '1' if you are focused on maintaining or changing how your body feels, or else write '0'.",            "write '1' if you are focused on maintaining or changing your environment, or else write '0'.",            "write '1' if you are focused on maintaining or changing your intentions, or else write '0'.",            "write '1' if you are focused on maintaining or changing The Other, or else write '0'.",            "write '1' if you are focused on maintaining or changing your social place, or else write '0'."        ]
-        self.questions2 = [    "how comfortable do you want your emotions to be on a scale of 0 to 4",    "how familiar do you want your emotions tobe on a scale of 0 to 4",    "how changing novel or dynamic do you want do you want your  emotions to be on a scale of 0 to 4",    "how comfortable is do you want your  body to be on a scale of 0 to 4",    "how familiar to be do you want your  bodily sensations to be on a scale of 0 to 4",    "how changing novel or dynamic to be do you want your  bodily sensations to be on a scale of 0 to 4 ",    "how comfortable do you want your  current environment to be on a scale of 0 to 4",    "how familiar do you want your  environment to be on a scale of 0 to 4",    "how changing novel or dynamic do you want your  environment to be on a scale of 0 to 4  ",    "how comfortable do you want your  intentions to be on a scale of 0 to 4",    "how familiar or familiarity-seeking do you want your  intentions to be on a scale of 0 to 4 ",    "how changing novel or dynamic do you want your  intentions to be on a scale of 0 to 4",    "note: 'the other' could be any person place or thing that has do you want your  attention right now.",    "how comfortable do you want the other make you on a scale of 0 to 4",    "how familiar do you want the other to be on a scale of 0 to 4",    "how changing novel or dynamic do you want other to be on a scale of 0 to 4  ",    "how comfortable do you want your  social group to be on a scale of 0 to 4",    "how familiar do you want your  social group to be on a scale of 0 to 4",    "how changing novel or dynamic do you want your  social group to be on a scale of 0 to 4     ",    "write '1' if you want to be focused to be on maintaining or changing your  emotions, or else write '0'.",    "write '1' if you want to be focused to be on maintaining or changing how your  body feels, or else write '0'.",    "write '1' if you want to be focused to be on maintaining or changing your  environment, or else write '0'.",    "write '1' if you want to be focused on maintaining or changing your  intentions, or else write '0'.",    "write '1' if you want to be focused on maintaining or changing your social place, or else write '0'."]
-        self.message_count = 0
-        self.survey1_results = None #self.survey1_results = self.get_results_of_questions(self.questions1)
-        self.survey2_results = None #self.survey2_results = self.get_results_of_questions(self.questions2)
-        self.current_emotion = None #self.current_emotion = self.get_emotion_coordinates(survey1_results)
-        self.user_target_emotion = None #self.user_target_emotion = self.get_emotion_coordinates(survey2_results)
-        self.target_emotion = None #self.target_emotion = self.calculate_target_emotion(self.user_target_emotion, self.bot_target_emotion)
-        self.current_question_index_number = int(0)
-        self.is_waiting_for_valid_answer = False
-        self.start_surveys()
-
-        def calculate_target_emotion(self, user_target_emotion, bot_target_emotion):
-            if user_target_emotion is None:
-                return bot_target_emotion
-            else:
-                return self.average_emotional_coordinates(user_target_emotion, bot_target_emotion)
-        self.target_emotion = self.calculate_target_emotion(self.user_target_emotion, self.bot_target_emotion)
-        self.target_emotion = self.calculate_target_emotion(self.user_target_emotion, self.bot_target_emotion)
-
-        def get_results_of_questions(self, questions):
-            results = []
-            for question in questions:
-                self.ask_question(question)
-                answer = self.validate_answer()
-                results.append(answer)
-            survey_emotional_coordinate = {'name': 'survey', **{f'coord{i}': int(results[i]) for i in range(len(results))}}
-            return survey_emotional_coordinate
-        self.survey1_results = self.get_results_of_questions(self.questions1)
-        self.survey2_results = self.get_results_of_questions(self.questions2)
-
-
-        def start_surveys(self):
-            self.current_question_cycle = cycle(self.questions1 + self.questions2)
-            self.current_survey_results = get_results_of_questions(questions).survey_emotional_coordinate
-
-        def get_emotion_coordinates(self, survey_results):
-            if isinstance(survey_results, dict):
-                coordinates = [value for key, value in survey_results.items() if key != "name"]
-                return coordinates
-            else:
-                emotion_coordinates = self.parse_emotional_decoder_csv()
-                if survey_results in emotion_coordinates:
-                    coordinates_str = emotion_coordinates[survey_results]
-                    if isinstance(coordinates_str, list):
-                        coordinates = [float(c) for c in coordinates_str[1:]]  # Convert to floats and skip the name part
-                    else:
-                        coordinates = [float(c) for c in coordinates_str.split(',')[1:]]  # Convert to floats and skip the name part
-                    return coordinates
-                return None
-        self.bot_target_emotion = self.get_emotion_coordinates("happy")
-
-        def initialize_pks(self):
-            try:
-                with open("uksekspks.json", "r") as f:
-                    pks_data = json.load(f)
-                    pks = UKSEKSPKS()
-                    pks.data = pks_data
-            except FileNotFoundError:
-                initial_coords = pd.read_csv(self.emotional_decoder_csv_path, index_col=0).iloc[0]
-                pks = UKSEKSPKS()
-                pks.add_profile("default", initial_coords)
-                with open("uksekspks.json", "w") as f:
-                    json.dump(pks.to_dict(), f, indent=4)
-            return pks
-        self.uksekspks = self.initialize_pks()
-
-        def initialize_model(self):
-            def progress_callback(progress):
-                pass
-
-            params = llamacpp.InferenceParams.default_with_callback(progress_callback)
-            params.path_model = self.model_path
-            params.seed = random.randint(10000, 99999)
-            params.repeat_penalty = 1.0
-            model = llamacpp.LlamaInference(params)
-            return model
-        self.model = self.initialize_model()
-
-        def generate_suggestion(self, prompt):
-            prompt_tokens = self.model.tokenize(prompt, True)
-            self.model.update_input(prompt_tokens)
-            self.model.ingest_all_pending_input()
-
-            suggestion = ""
-            while True:
-                self.model.eval()
-                token = self.model.sample()
-                text = self.model.token_to_str(token)
-                if text == "\n":
-                    break
-                suggestion += text
-
-            return suggestion.strip()
-
-        def follows_logically(self, sequence):
-            sentence = ' '.join(sequence)
-            try:
-                doc = self.nlp(sentence)
-                return True
-            except:
-                return False
-
-        def parse_emotional_decoder_csv(self):
-            emotions_dict = {}
-            with open(self.emotional_decoder_csv_path, "r") as csvfile:
-                csvreader = csv.reader(csvfile)
-                for row in csvreader:
-                    emotions_dict[row[0]] = [float(val) for val in row[1:]]
-            return emotions_dict
-
-        def average_emotional_coordinates(self, coord1, coord2):
-            return [(a + b) / 2 for a, b in zip(coord1, coord2)]
-
-        def update_user_emotion(self, user_emotion, new_emotion, survey_results):
-            if new_emotion not in self.uksekspks.data["emotions"]:
-                new_emotion_name = self.handle_new_emotion_name(new_emotion, survey_results)
-                self.uksekspks.data["emotions"][new_emotion_name] = user_emotion
-            else:
-                self.uksekspks.data["emotions"][new_emotion] = user_emotion
-            self.uksekspks.save_data()
-
-        def generate_response_with_target_emotion(input_text):
-            response = self.generate_suggestion(input_text)
-            user_emotion = self.identify_emotion(input_text)
-            response_emotion = self.identify_emotion(response)
-
-            self.update_emotional_synapse_weights(input_text, response)
-            user_emotion_label = max(user_emotion, key=user_emotion.get) # get the label with the highest probability
-            eks_emotion = self.uksekspks.generate_eks_sentence("#" + user_emotion_label + "#")
-            text2emotion_emotion = te.get_emotion(input_text)
-            predicted_emotion = self.calculate_predicted_emotion(eks_emotion, text2emotion_emotion)
-            self.current_emotion = self.calculate_new_current_emotion(self.current_emotion, predicted_emotion)
-
-            if response_emotion != target_emotion:
-                emotion_coordinates = self.parse_emotional_decoder_csv()
-                target_coordinates = emotion_coordinates.get(target_emotion)
-                user_coordinates_str = emotion_coordinates.get(user_emotion_label) # use the extracted label instead of the dictionary
-                if isinstance(response_emotion, dict):
-                    response_emotion_key = next(iter(response_emotion))
-                    response_coordinates_str = emotion_coordinates.get(response_emotion_key)
-                else:
-                    response_coordinates_str = emotion_coordinates.get(response_emotion)
-
-                if target_coordinates and user_coordinates_str and response_coordinates_str:
-                    user_coordinates = [int(c) for c in user_coordinates_str.split(',')] # convert to integers
-                    response_coordinates = [int(c) for c in response_coordinates_str.split(',')] # convert to integers
-                    avg_coordinates = self.average_emotional_coordinates(user_coordinates, response_coordinates)
-                    for emotion, coordinates_str in emotion_coordinates.items():
-                        coordinates = [int(c) for c in coordinates_str.split(',')] # convert to integers
-                        if coordinates == avg_coordinates:
-                            target_emotion = emotion
-                            break
-
-                    response = self.uksekspks.generate_eks_sentence("#" + target_emotion + "#")
-
-            return response
-
-        def handle_new_emotion_name(self, new_emotion, survey_results):
-            emotion_coordinates = self.parse_emotional_decoder_csv()
-
-            # Check if emotion already exists in the emotional decoder
-            if new_emotion in emotion_coordinates:
-                existing_coordinates = emotion_coordinates[new_emotion]
-                if existing_coordinates == survey_results['emotional_coordinates']:
-                    # Strengthen synapses of existing emotion with corresponding word trees
-                    self.uksekspks.strengthen_word_trees(existing_coordinates, survey_results)
-                    return new_emotion
-                else:
-                    # If the emotion already exists with different coordinates, rename the existing emotion
-                    i = 1
-                    while True:
-                        old_emotion = f"{new_emotion} (old definition {i})"
-                        if old_emotion not in emotion_coordinates:
-                            break
-                        i += 1
-                    emotion_coordinates[old_emotion] = emotion_coordinates.pop(new_emotion)
-                    new_emotion = old_emotion
-
-            # Add the new emotion to the emotional decoder
-            emotion_coordinates[new_emotion] = survey_results['emotional_coordinates']
-            self.save_emotional_decoder_csv(emotion_coordinates)
-
-            # Strengthen synapses of new emotion with corresponding word trees
-            self.uksekspks.strengthen_word_trees(survey_results['emotional_coordinates'], survey_results)
-
-            return new_emotion
-
-            # Inform user that a new emotion is being added
-            output = "I'm adding a new emotion to my emotional decoder, but it needs a name. Please tell me what to call it!"
-            self.override_output(output)
-
-            # Wait and get user's response (which will be the new emotion name)
-            new_emotion_name = self.wait_and_get_user_input()
-
-            # Add new emotion with survey results as coordinates
-            emotion_coordinates[new_emotion_name] = [survey_results['comfort_emotions'],
-                                                     survey_results['familiarity_emotions'],
-                                                     survey_results['novelty_emotions'],
-                                                     survey_results['discomfort_emotions']]
-            with open(self.emotional_decoder_csv_path, "w") as csvfile:
-                csvwriter = csv.writer(csvfile)
-                csvwriter.writerow(["emotion", "comfort", "familiarity", "novelty", "discomfort"])
-                for emotion, coordinates in emotion_coordinates.items():
-                    csvwriter.writerow([emotion, *coordinates])
-
-            return new_emotion_name
-
-        def wait_and_get_user_input(self):
-            # Wait for user to input something
-            user_input = None
-            while not user_input:
-                time.sleep(0.1)
-                user_input = self.get_last_user_input()
-            # Clear last user input
-            self.clear_last_user_input()
-            return user_input
-
-        def override_output(self, output):
-            # Override the output of generate_response method
-            self.override_generate_response = output
-
-        def ask_question(self, question):
-            question = self.questions1[int(self.current_question_index_number)] if int(self.current_question_index_number) < len(self.questions1) else self.questions2[int(self.current_question_index_number) - len(self.questions1)]
-            self.override_output(question)
-
-        def validate_answer(self, answer, index, survey_number):
-            if not answer.isdigit():
-                return False
-
-            answer_int = int(answer)
-
-            if survey_number == 1:
-                if 0 <= index < 24:  # First 24 questions
-                    return 0 <= answer_int <= 4
-                elif 24 <= index < 30:  # Last 6 questions
-                    return answer_int in (0, 1)
-                else:
-                    return False
-            elif survey_number == 2:
-                if 0 <= index < 18:  # First 18 questions
-                    return 0 <= answer_int <= 4
-                elif 18 <= index < 24:  # Last 6 questions
-                    return answer_int in (0, 1)
-                elif 24 <= index:  # Last 6 questions
-                    self.user_target_emotion = self.get_emotion_coordinates(survey2_results)
-                else:
-                    return False
-            else:
-                return False
-
-        def get_current_survey_number(self):
-            if self.current_question_index_number < len(self.questions1):
-                return 1
-            else:
-                self.current_emotion = self.get_emotion_coordinates(survey1_results)
-                return 2
-
-        def handle_survey_results(self):
-            survey1_results = self.current_survey_results[:len(self.questions1)]
-            survey2_results = self.current_survey_results[len(self.questions1):]
-
-            self.current_emotion = self.get_emotion_coordinates(survey1_results)
-            self.user_target_emotion = self.get_emotion_coordinates(survey2_results)
-            self.target_emotion = self.calculate_target_emotion(self.user_target_emotion, self.bot_target_emotion)
-
-        def process_survey_answer(self, input_text):
-            if self.validate_answer(input_text, self.current_question_index_number, self.get_current_survey_number()):
-                self.current_survey_results = int(input_text)
-                self.current_question_index_number += 1
-                if self.current_question_index_number >= len(self.current_survey_results):
-                    self.handle_survey_results()
-                    self.current_question_index_number = 0
-                    self.is_waiting_for_valid_answer = False
-            else:
-                self.override_output("Invalid input. Please enter a valid answer.")
-
-        def update_surveys(self):
-            self.message_count += 1
-            survey2_zero_cycle = 6
-            survey2_zero_count = 0
-            survey2_question_count = 0
-
-            if self.message_count % 23 == 0:
-                self.is_waiting_for_valid_answer = True
-                self.ask_question(self.current_question_index_number)
-
-            if self.message_count % 51 == 0:
-                self.is_waiting_for_valid_answer = True
-                self.ask_question(self.current_question_index_number + len(self.questions1))
-
-                # Add zeros as required
-                if survey2_question_count < survey2_zero_cycle * 3:
-                    survey2_zero_count += 1
-                    if survey2_zero_count == 3:
-                        self.current_survey_results.insert(self.current_question_index_number + len(self.questions1) + survey2_question_count, 0)
-                        survey2_zero_count = 0
-                        survey2_question_count += 1
-
-        def generate_response(input_text):
-            if self.is_waiting_for_valid_answer:
-                self.process_survey_answer(input_text)
-                if self.is_waiting_for_valid_answer:
-                    self.ask_question(self.current_question_index_number)
-                else:
-                    self.update_surveys()
-                    return self.generate_response(input_text)
-            else:
-                if self.override_generate_response:
-                    output = self.override_generate_response
-                    self.override_generate_response = None
-                    self.update_surveys()
-                else:
-                    output = self.generate_response_with_target_emotion(input_text)
-                    self.update_surveys()
-                return output
-
-        def identify_emotion(self, text):
-            return te.get_emotion(text)
-
-        def calculate_predicted_emotion(self, eks_emotion, t2e_emotion):
-            eks_strength = self.uksekspks.get_synapse_strengths("EKS")
-            t2e_strength = self.uksekspks.get_synapse_strengths("T2E")
-
-            eks_w = sum(eks_strength.values())
-            t2e_w = sum(t2e_strength.values())
-
-            if eks_w > t2e_w:
-                return eks_emotion
-            elif t2e_w > eks_w:
-                return t2e_emotion
-            else:
-                return choice([eks_emotion, t2e_emotion])
-
-        def calculate_new_current_emotion(self, last_emotion, predicted_emotion):
-            if not last_emotion:
-                return predicted_emotion
-            else:
-                return [0.8 * last_emotion[i] + 0.2 * predicted_emotion[i] for i in range(len(last_emotion))]
-
-        def update_emotional_synapse_weights(self, prompt, response):
-            prompt_words = prompt.split()
-            response_words = response.split()
-
-            # Update weights for prompt and response
-            self.uksekspks.update_tree(prompt_words, self.current_emotion, is_user_input=True)
-            self.uksekspks.update_tree(response_words, self.current_emotion, is_user_input=False)
-
-
 class UKSEKSPKS:
-    def __init__(self, uksekspks_json_path="uksekspks.json"):
-        self.uksekspks_json_path = uksekspks_json_path
+    def __init__(self):
+        try:
+            with open("uksekspks.json", "r") as f:
+                pks_data = json.load(f)
+                pks = pks_data
+        except FileNotFoundError:
+            df = pd.read_csv("emotional_decoder.csv", index_col=0)
+            pks = {}
+            for index, row in df.iterrows():
+                emotion_name = index
+                values = row.tolist()
+                pks[emotion_name] = values
+            with open("uksekspks.json", "w") as f:
+                json.dump(pks, f, indent=4)
+        self.uksekspks_json_path = "uksekspks.json"
+        self.pks = pks
         self.load_data()
 
     def load_data(self):
@@ -509,6 +162,326 @@ class UKSEKSPKS:
                     synapse_strengths[emotion_key] += weight_value * emotion_value
         return synapse_strengths
 
-# You should create an instance of UKSEKSPKS within your agi.py module
-uksekspks_json_path = "uksekspks.json"
-uksekspks = UKSEKSPKS(uksekspks_json_path)
+class AGI:
+    def __init__(self, model_path, emotional_decoder_csv_path):
+        self.model_path = model_path
+        self.model = None #self.model = self.initialize_model()
+        self.emotional_decoder_csv_path = "emotional_decoder.csv"
+        self.nlp = stanfordnlp.Pipeline()
+        self.current_emotion = None
+        self.uksekspks = None #self.uksekspks = self.initialize_pks()
+        self.override_generate_response = False
+        self.user_target_emotion = None
+        self.bot_target_emotion = None #self.bot_target_emotion = self.get_emotion_coordinates("happy")
+        self.target_emotion = None #self.target_emotion = self.calculate_target_emotion(self.user_target_emotion, self.bot_target_emotion)
+        self.questions1 = [            "how comfortable are your emotions on a scale of 0 to 4",            "how familiar are your emotions on a scale of 0 to 4",            "how changing novel or dynamic are your emotions on a scale of 0 to 4",            "how uncomfortable are your emotions on a scale of 0 to 4",            "how comfortable is your body on a scale of 0 to 4",            "how familiar are your bodily sensations on a scale of 0 to 4",            "how changing novel or dynamic are your bodily sensations on a scale of 0 to 4 ",            "how uncomfortable is your body on a scale of 0 to 4",            "how comfortable is your current environment on a scale of 0 to 4",            "how familiar is your environment on a scale of 0 to 4",            "how changing novel or dynamic is your environment on a scale of 0 to 4",            "how uncomfortable is your environment on a scale of 0 to 4",            "how comfortable are your intentions on a scale of 0 to 4",            "how familiar or familiarity-seeking are your intentions on a scale of 0 to 4 ",            "how changing novel or dynamic are your intentions on a scale of 0 to 4",            "how uncomfortable are your intentions on a scale of 0 to 4",            "note: 'the other' could be any person place or thing that has your attention right now. How comfortable does the other make you on a scale of 0 to 4",            "how familiar is the other on a scale of 0 to 4",            "how changing novel or dynamic is the other on a scale of 0 to 4  ",            "how uncomfortable does the other make you on a scale of 0 to 4",            "how comfortable is your social group on a scale of 0 to 4",            "how familiar is your social group on a scale of 0 to 4",            "how changing novel or dynamic is your social group on a scale of 0 to 4     ",            "how uncomfortable is your social group on a scale of 0 to 4",            "write '1' if you are focused on maintaining or changing your emotions, or else write '0'.",            "write '1' if you are focused on maintaining or changing how your body feels, or else write '0'.",            "write '1' if you are focused on maintaining or changing your environment, or else write '0'.",            "write '1' if you are focused on maintaining or changing your intentions, or else write '0'.",            "write '1' if you are focused on maintaining or changing The Other, or else write '0'.",            "write '1' if you are focused on maintaining or changing your social place, or else write '0'."        ]
+        self.questions2 = [    "how comfortable do you want your emotions to be on a scale of 0 to 4",    "how familiar do you want your emotions tobe on a scale of 0 to 4",    "how changing novel or dynamic do you want do you want your  emotions to be on a scale of 0 to 4",    "how comfortable is do you want your  body to be on a scale of 0 to 4",    "how familiar to be do you want your  bodily sensations to be on a scale of 0 to 4",    "how changing novel or dynamic to be do you want your  bodily sensations to be on a scale of 0 to 4 ",    "how comfortable do you want your  current environment to be on a scale of 0 to 4",    "how familiar do you want your  environment to be on a scale of 0 to 4",    "how changing novel or dynamic do you want your  environment to be on a scale of 0 to 4  ",    "how comfortable do you want your  intentions to be on a scale of 0 to 4",    "how familiar or familiarity-seeking do you want your  intentions to be on a scale of 0 to 4 ",    "how changing novel or dynamic do you want your  intentions to be on a scale of 0 to 4",    "note: 'the other' could be any person place or thing that has do you want your  attention right now.",    "how comfortable do you want the other make you on a scale of 0 to 4",    "how familiar do you want the other to be on a scale of 0 to 4",    "how changing novel or dynamic do you want other to be on a scale of 0 to 4  ",    "how comfortable do you want your  social group to be on a scale of 0 to 4",    "how familiar do you want your  social group to be on a scale of 0 to 4",    "how changing novel or dynamic do you want your  social group to be on a scale of 0 to 4     ",    "write '1' if you want to be focused to be on maintaining or changing your  emotions, or else write '0'.",    "write '1' if you want to be focused to be on maintaining or changing how your  body feels, or else write '0'.",    "write '1' if you want to be focused to be on maintaining or changing your  environment, or else write '0'.",    "write '1' if you want to be focused on maintaining or changing your  intentions, or else write '0'.",    "write '1' if you want to be focused on maintaining or changing your social place, or else write '0'."]
+        self.message_count = 0
+        self.survey1_results = None #self.survey1_results = self.get_results_of_questions(self.questions1)
+        self.survey2_results = None #self.survey2_results = self.get_results_of_questions(self.questions2)
+        self.current_emotion = None #self.current_emotion = self.get_emotion_coordinates(survey1_results)
+        self.user_target_emotion = None #self.user_target_emotion = self.get_emotion_coordinates(survey2_results)
+        self.target_emotion = None #self.target_emotion = self.calculate_target_emotion(self.user_target_emotion, self.bot_target_emotion)
+        self.current_question_index_number = int(0)
+        self.is_waiting_for_valid_answer = False
+        self.uksekspks = UKSEKSPKS()
+
+        def initialize_model(self):
+            params = llamacpp.InferenceParams.default_with_callback(progress_callback)
+            params.path_model = self.model_path
+            params.seed = random.randint(10000, 99999)
+            params.repeat_penalty = 1.0
+            model = llamacpp.LlamaInference(params)
+            return model
+
+        def generate_suggestion(self, prompt):
+            prompt_tokens = self.model.tokenize(prompt, True)
+            self.model.update_input(prompt_tokens)
+            self.model.ingest_all_pending_input()
+
+            suggestion = ""
+            while True:
+                self.model.eval()
+                token = self.model.sample()
+                text = self.model.token_to_str(token)
+                if text == "\n":
+                    break
+                suggestion += text
+
+            return suggestion.strip()
+
+        def follows_logically(self, sequence):
+            sentence = ' '.join(sequence)
+            try:
+                doc = self.nlp(sentence)
+                return True
+            except:
+                return False
+
+        def parse_emotional_decoder_csv(self):
+            emotions_dict = {}
+            with open(self.emotional_decoder_csv_path, "r") as csvfile:
+                csvreader = csv.reader(csvfile)
+                for row in csvreader:
+                    emotions_dict[row[0]] = [float(val) for val in row[1:]]
+            return emotions_dict
+
+        def get_emotion_coordinates(self, survey_results):
+            if isinstance(survey_results, dict):
+                coordinates = [value for key, value in survey_results.items() if key != "name"]
+                return coordinates
+            else:
+                emotion_coordinates = self.parse_emotional_decoder_csv()
+                if survey_results in emotion_coordinates:
+                    coordinates_str = emotion_coordinates[survey_results]
+                    if isinstance(coordinates_str, list):
+                        coordinates = [float(c) for c in coordinates_str[1:]]  # Convert to floats and skip the name part
+                    else:
+                        coordinates = [float(c) for c in coordinates_str.split(',')[1:]]  # Convert to floats and skip the name part
+                    return coordinates
+                return None
+            self.bot_target_emotion = self.get_emotion_coordinates("happy")
+
+        def average_emotional_coordinates(self, coord1, coord2):
+            return [(a + b) / 2 for a, b in zip(coord1, coord2)]
+
+        def calculate_target_emotion(self, user_target_emotion, bot_target_emotion):
+            if user_target_emotion is None:
+                return bot_target_emotion
+            else:
+                return self.average_emotional_coordinates(user_target_emotion, bot_target_emotion)
+            self.target_emotion = self.calculate_target_emotion(self.user_target_emotion, self.bot_target_emotion)
+            self.target_emotion = self.calculate_target_emotion(self.user_target_emotion, self.bot_target_emotion)
+
+        def update_user_emotion(self, user_emotion, new_emotion, survey_results):
+            if new_emotion not in self.uksekspks.data["emotions"]:
+                new_emotion_name = self.handle_new_emotion_name(new_emotion, survey_results)
+                self.uksekspks.data["emotions"][new_emotion_name] = user_emotion
+            else:
+                self.uksekspks.data["emotions"][new_emotion] = user_emotion
+            self.uksekspks.save_data()
+
+        def generate_response_with_target_emotion(input_text):
+            response = self.generate_suggestion(input_text)
+            user_emotion = self.identify_emotion(input_text)
+            response_emotion = self.identify_emotion(response)
+
+            self.update_emotional_synapse_weights(input_text, response)
+            user_emotion_label = max(user_emotion, key=user_emotion.get) # get the label with the highest probability
+            eks_emotion = self.uksekspks.generate_eks_sentence("#" + user_emotion_label + "#")
+            text2emotion_emotion = te.get_emotion(input_text)
+            predicted_emotion = self.calculate_predicted_emotion(eks_emotion, text2emotion_emotion)
+            self.current_emotion = self.calculate_new_current_emotion(self.current_emotion, predicted_emotion)
+
+            if response_emotion != target_emotion:
+                emotion_coordinates = self.parse_emotional_decoder_csv()
+                target_coordinates = emotion_coordinates.get(target_emotion)
+                user_coordinates_str = emotion_coordinates.get(user_emotion_label) # use the extracted label instead of the dictionary
+                if isinstance(response_emotion, dict):
+                    response_emotion_key = next(iter(response_emotion))
+                    response_coordinates_str = emotion_coordinates.get(response_emotion_key)
+                else:
+                    response_coordinates_str = emotion_coordinates.get(response_emotion)
+
+                if target_coordinates and user_coordinates_str and response_coordinates_str:
+                    user_coordinates = [int(c) for c in user_coordinates_str.split(',')] # convert to integers
+                    response_coordinates = [int(c) for c in response_coordinates_str.split(',')] # convert to integers
+                    avg_coordinates = self.average_emotional_coordinates(user_coordinates, response_coordinates)
+                    for emotion, coordinates_str in emotion_coordinates.items():
+                        coordinates = [int(c) for c in coordinates_str.split(',')] # convert to integers
+                        if coordinates == avg_coordinates:
+                            target_emotion = emotion
+                            break
+
+                    response = self.uksekspks.generate_eks_sentence("#" + target_emotion + "#")
+
+            return response
+
+        def handle_new_emotion_name(self, new_emotion, survey_results):
+            emotion_coordinates = self.parse_emotional_decoder_csv()
+
+            # Extract the 30 integers from the dictionary, ignoring the arbitrary name key
+            survey_results = next(value for key, value in survey_results_dict.items() if key != "arbitrary_name")
+
+            # Check if emotion already exists in the emotional decoder
+            if new_emotion in emotion_coordinates:
+                existing_coordinates = emotion_coordinates[new_emotion]
+                if existing_coordinates == survey_results:
+                    # Strengthen synapses of existing emotion with corresponding word trees
+                    self.uksekspks.strengthen_word_trees(existing_coordinates, survey_results)
+                    return new_emotion
+                else:
+                    # If the emotion already exists with different coordinates, rename the existing emotion
+                    i = 1
+                    while True:
+                        old_emotion = f"{new_emotion} (old definition {i})"
+                        if old_emotion not in emotion_coordinates:
+                            break
+                        i += 1
+                    emotion_coordinates[old_emotion] = emotion_coordinates.pop(new_emotion)
+                    new_emotion = old_emotion
+
+            # Add the new emotion to the emotional decoder
+            emotion_coordinates[new_emotion] = survey_results
+            self.save_emotional_decoder_csv(emotion_coordinates)
+
+            # Strengthen synapses of new emotion with corresponding word trees
+            self.uksekspks.strengthen_word_trees(survey_results, survey_results)
+
+            return new_emotion
+
+        def wait_and_get_user_input(self):
+            # Wait for user to input something
+            user_input = None
+            while not user_input:
+                time.sleep(0.1)
+                user_input = self.get_last_user_input()
+            # Clear last user input
+            self.clear_last_user_input()
+            return user_input
+
+        def override_output(self, output):
+            # Override the output of generate_response method
+            self.override_generate_response = output
+
+        def ask_question(self, question):
+            question = self.questions1[int(self.current_question_index_number)] if int(self.current_question_index_number) < len(self.questions1) else self.questions2[int(self.current_question_index_number) - len(self.questions1)]
+            self.override_output(question)
+
+        def get_results_of_questions(self, questions):
+            results = []
+            for question in questions:
+                self.ask_question(question)
+                answer = self.validate_answer()
+                results.append(answer)
+            survey_emotional_coordinate = {'name': 'survey', **{f'coord{i}': int(results[i]) for i in range(len(results))}}
+            return survey_emotional_coordinate
+            self.survey1_results = self.get_results_of_questions(self.questions1)
+            self.survey2_results = self.get_results_of_questions(self.questions2)
+
+
+        def start_surveys(self):
+            self.current_question_cycle = cycle(self.questions1 + self.questions2)
+            self.current_survey_results = get_results_of_questions(questions).survey_emotional_coordinate
+
+        def validate_answer(self, answer, index, survey_number):
+            if not answer.isdigit():
+                return False
+
+            answer_int = int(answer)
+
+            if survey_number == 1:
+                if 0 <= index < 24:  # First 24 questions
+                    return 0 <= answer_int <= 4
+                elif 24 <= index < 30:  # Last 6 questions
+                    return answer_int in (0, 1)
+                else:
+                    return False
+            elif survey_number == 2:
+                if 0 <= index < 18:  # First 18 questions
+                    return 0 <= answer_int <= 4
+                elif 18 <= index < 24:  # Last 6 questions
+                    return answer_int in (0, 1)
+                elif 24 <= index:  # Last 6 questions
+                    self.user_target_emotion = self.get_emotion_coordinates(survey2_results)
+                else:
+                    return False
+            else:
+                return False
+
+        def get_current_survey_number(self):
+            if self.current_question_index_number < len(self.questions1):
+                return 1
+            else:
+                self.current_emotion = self.get_emotion_coordinates(survey1_results)
+                return 2
+
+        def handle_survey_results(self):
+            survey1_results = self.current_survey_results[:len(self.questions1)]
+            survey2_results = self.current_survey_results[len(self.questions1):]
+
+            self.current_emotion = self.get_emotion_coordinates(survey1_results)
+            self.user_target_emotion = self.get_emotion_coordinates(survey2_results)
+            self.target_emotion = self.calculate_target_emotion(self.user_target_emotion, self.bot_target_emotion)
+
+        def process_survey_answer(self, input_text):
+            if self.validate_answer(input_text, self.current_question_index_number, self.get_current_survey_number()):
+                self.current_survey_results = int(input_text)
+                self.current_question_index_number += 1
+                if self.current_question_index_number >= len(self.current_survey_results):
+                    self.handle_survey_results()
+                    self.current_question_index_number = 0
+                    self.is_waiting_for_valid_answer = False
+            else:
+                self.override_output("Invalid input. Please enter a valid answer.")
+
+        def update_surveys(self):
+            self.message_count += 1
+            survey2_zero_cycle = 6
+            survey2_zero_count = 0
+            survey2_question_count = 0
+
+            if self.message_count % 23 == 0:
+                self.is_waiting_for_valid_answer = True
+                self.ask_question(self.current_question_index_number)
+
+            if self.message_count % 51 == 0:
+                self.is_waiting_for_valid_answer = True
+                self.ask_question(self.current_question_index_number + len(self.questions1))
+
+                # Add zeros as required
+                if survey2_question_count < survey2_zero_cycle * 3:
+                    survey2_zero_count += 1
+                    if survey2_zero_count == 3:
+                        self.current_survey_results.insert(self.current_question_index_number + len(self.questions1) + survey2_question_count, 0)
+                        survey2_zero_count = 0
+                        survey2_question_count += 1
+
+        def generate_response(input_text):
+            if self.is_waiting_for_valid_answer:
+                self.process_survey_answer(input_text)
+                if self.is_waiting_for_valid_answer:
+                    self.ask_question(self.current_question_index_number)
+                else:
+                    self.update_surveys()
+                    return self.generate_response(input_text)
+            else:
+                if self.override_generate_response:
+                    output = self.override_generate_response
+                    self.override_generate_response = None
+                    self.update_surveys()
+                else:
+                    output = self.generate_response_with_target_emotion(input_text)
+                    self.update_surveys()
+                return output
+
+        def identify_emotion(self, text):
+            return te.get_emotion(text)
+
+        def calculate_predicted_emotion(self, eks_emotion, t2e_emotion):
+            eks_strength = self.uksekspks.get_synapse_strengths("EKS")
+            t2e_strength = self.uksekspks.get_synapse_strengths("T2E")
+
+            eks_w = sum(eks_strength.values())
+            t2e_w = sum(t2e_strength.values())
+
+            if eks_w > t2e_w:
+                return eks_emotion
+            elif t2e_w > eks_w:
+                return t2e_emotion
+            else:
+                return choice([eks_emotion, t2e_emotion])
+
+        def calculate_new_current_emotion(self, last_emotion, predicted_emotion):
+            if not last_emotion:
+                return predicted_emotion
+            else:
+                return [0.8 * last_emotion[i] + 0.2 * predicted_emotion[i] for i in range(len(last_emotion))]
+
+        def update_emotional_synapse_weights(self, prompt, response):
+            prompt_words = prompt.split()
+            response_words = response.split()
+
+            # Update weights for prompt and response
+            self.uksekspks.update_tree(prompt_words, self.current_emotion, is_user_input=True)
+            self.uksekspks.update_tree(response_words, self.current_emotion, is_user_input=False)

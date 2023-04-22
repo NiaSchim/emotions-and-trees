@@ -23,7 +23,7 @@ def mode_2():
     chat_gui.run()
 
 def main():
-    # Check for command-line arguments to determine which mode to run in
+    # run in mode 2 if main.
     mode = 2
 
     if mode == 1:
