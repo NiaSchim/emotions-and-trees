@@ -48,12 +48,15 @@ class ChatGUI:
         main_window.setLayout(main_layout)
 
         # Connect send button to send_message method
-        send_button.clicked.connect(lambda: self.send_message(input_box.toPlainText(), chat_history_layout))
+        send_button.clicked.connect(lambda: self.send_message(input_box.toPlainText().strip(), chat_history_layout))
 
         main_window.show()
         app.exec_()
 
     def send_message(self, message, chat_history_layout):
+        if not message.strip():  # Ignore empty or whitespace-only messages
+            return
+
         user_message_box = QLabel(f"User: {message}")
         user_message_box.setStyleSheet("background-color: #EEEEEE; padding: 10px; border-radius: 5px;")
         user_message_box.setAlignment(Qt.AlignRight)
@@ -66,17 +69,24 @@ class ChatGUI:
         chat_history_layout.addWidget(bot_message_box)
 
         # Save chat history to chat-history.xml file
-        chat_history_root = Element("chat-history")
-        for i in range(chat_history_layout.count()):
-            message = chat_history_layout.itemAt(i).widget()
-            user_or_bot = message.text().split(": ")[0]
-            text = message.text().split(": ")[1]
-            message_element = Element("message")
-            user_element = Element("user")
-            user_element.text = user_or_bot
-            message_element.append(user_element)
-            bot_element = Element("bot")
-            bot_element.text = text
-            message_element.append(bot_element)
-            chat_history_root.append(message_element)
+        if os.path.exists("chat-history.xml"):
+            chat_history_root = ElementTree(file="chat-history.xml").getroot()
+        else:
+            chat_history_root = Element("chat-history")
+
+        user_message_element = Element("message")
+        user_element = Element("user")
+        user_element.text = message
+        user_message_element.append(user_element)
+        chat_history_root.append(user_message_element)
+
+        bot_message_element = Element("message")
+        bot_element = Element("bot")
+        bot_element.text = response
+        bot_message_element.append(bot_element)
+        chat_history_root.append(bot_message_element)
+
         ElementTree(chat_history_root).write("chat-history.xml")
+
+        # Clear the input box
+        self.input_box.clear()
