@@ -242,7 +242,7 @@ class AGI:
         self.current_survey_results = get_results_of_questions(questions).survey_emotional_coordinate
 
     def validate_answer(self, answer, index, survey_number):
-        if not answer.isdigit():
+        if not answer.isdigit() or len(answer) != 1:
             return False
 
         answer_int = int(answer)
